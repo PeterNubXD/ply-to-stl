@@ -2,6 +2,7 @@ import gradio as gr
 import pymeshlab
 import tempfile
 import os
+import shutil
 
 POISSON_DEPTH = 9   # 8=fast/good, 9=high quality, 10=very high/slow
 
@@ -10,8 +11,13 @@ def convert_ply_to_stl(ply_file):
     if ply_file is None:
         raise gr.Error("Please upload a PLY file first.")
 
+    # Copy to a temp file with .ply extension so pymeshlab recognises the format
+    with tempfile.NamedTemporaryFile(suffix=".ply", delete=False) as f:
+        tmp_input = f.name
+    shutil.copy(ply_file, tmp_input)
+
     ms = pymeshlab.MeshSet()
-    ms.load_new_mesh(ply_file)
+    ms.load_new_mesh(tmp_input)
 
     # Step 1: Remove isolated pieces (wrt Diameter)
     try:
@@ -61,7 +67,8 @@ def convert_ply_to_stl(ply_file):
         ms.apply_filter("apply_coord_laplacian_smoothing")
 
     # Step 6: Export
-    output_path = tempfile.mktemp(suffix=".stl")
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as f:
+        output_path = f.name
     ms.save_current_mesh(output_path, binary=True)
 
     filename = os.path.basename(ply_file).replace(".ply", "_converted.stl")
@@ -70,7 +77,7 @@ def convert_ply_to_stl(ply_file):
     return friendly_path
 
 
-with gr.Blocks(title="PLY → STL Converter") as app:
+with gr.Blocks(title="PLY → STL Converter", css="footer{display:none !important}") as app:
     gr.Markdown(
         """
         # PLY → STL Converter
