@@ -66,7 +66,14 @@ def convert_ply_to_stl(ply_file):
     for _ in range(6):
         ms.apply_filter("apply_coord_laplacian_smoothing")
 
-    # Step 6: Export
+    # Step 6: Remove duplicate faces and vertices from final mesh
+    try:
+        ms.apply_filter("meshing_remove_duplicate_faces")
+        ms.apply_filter("meshing_remove_duplicate_vertices")
+    except Exception:
+        pass
+
+    # Step 7: Export
     with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as f:
         output_path = f.name
     ms.save_current_mesh(output_path, binary=True)
